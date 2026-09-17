@@ -113,8 +113,13 @@ run_all_checks() {
 }
 
 if [[ "$OUTPUT_MODE" == "json" ]]; then
-  # Strip ANSI and re-emit as JSON for monitoring ingestion.
-  raw="$(run_all_checks | sed 's/\x1b\[[0-9;]*m//g')"
+  # Not `raw="$(run_all_checks | sed ...)"`: command substitution forks a
+  # subshell, and report()'s updates to WORST_STATUS/CHECKS_RUN/etc are
+  # plain variable assignments that would then be lost when the subshell
+  # exits, leaving every count at zero (and the exit code always 0)
+  # regardless of what actually ran. Redirecting straight to /dev/null
+  # keeps run_all_checks in the current shell so those updates stick.
+  run_all_checks >/dev/null
   printf '{"host":"%s","timestamp":"%s","worst_status":%d,"checks_run":%d,"ok":%d,"warning":%d,"critical":%d}\n' \
     "$(hostname)" "$(log_ts)" "$WORST_STATUS" "$CHECKS_RUN" "$CHECKS_OK" "$CHECKS_WARN" "$CHECKS_CRIT"
   exit "$WORST_STATUS"
@@ -126,8 +131,17 @@ if [[ -n "$BASELINE_FILE" ]]; then
   printf '\nbaseline written to %s\n' "$BASELINE_FILE"
 elif [[ -n "${COMPARE_FILE:-}" ]]; then
   [[ -f "$COMPARE_FILE" ]] || die "baseline not found: $COMPARE_FILE"
+  current_raw="$(mktemp)"
   current="$(mktemp)"
-  run_all_checks | sed 's/\x1b\[[0-9;]*m//g' > "$current"
+  # Plain redirection, not `run_all_checks | sed ...`: a pipe still forks
+  # run_all_checks into a subshell, silently discarding its updates to
+  # WORST_STATUS (the same bug --json had) and leaving --compare's exit
+  # code stuck at 0 no matter what the checks found. Stripping ANSI is
+  # done as a separate step afterward instead, on the file already
+  # written by the direct, unpiped run.
+  run_all_checks > "$current_raw"
+  sed 's/\x1b\[[0-9;]*m//g' "$current_raw" > "$current"
+  rm -f "$current_raw"
   cat "$current"
 
   # Compare only check result lines. Timestamps, hostnames and the summary
