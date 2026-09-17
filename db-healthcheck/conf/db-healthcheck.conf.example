@@ -1,0 +1,50 @@
+# db-healthcheck.conf - copy to conf/db-healthcheck.conf and edit.
+# conf/db-healthcheck.conf is gitignored -- never commit real connection
+# details or credentials. Every assignment uses `: "${VAR:=default}"` so a
+# value already set in the environment (e.g. injected by a secret manager
+# or a CI pipeline) is never overwritten by this file.
+#
+# NEVER put a real password directly in this file. Use
+# DB_HEALTHCHECK_PASSWORD_FILE to point at a file containing just the
+# password (e.g. a Docker/Kubernetes secret mount), or export
+# DB_HEALTHCHECK_PASSWORD in the calling environment instead.
+
+# --- Backend selection -------------------------------------------------
+: "${DB_HEALTHCHECK_BACKEND:=postgres}"     # postgres | oracle | sqlite
+
+# --- Connection (postgres / oracle) -------------------------------------
+: "${DB_HEALTHCHECK_HOST:=127.0.0.1}"
+: "${DB_HEALTHCHECK_PORT:=5432}"            # 5432 postgres, 1521 oracle
+: "${DB_HEALTHCHECK_NAME:=postgres}"        # database name, or Oracle service name
+: "${DB_HEALTHCHECK_USER:=healthcheck_ro}"
+
+# Prefer a secret file over a literal password. Neither is set here on
+# purpose -- the tool refuses to run with no credential source at all
+# rather than falling back to a guessable default.
+# : "${DB_HEALTHCHECK_PASSWORD_FILE:=/run/secrets/db-healthcheck-password}"
+# : "${DB_HEALTHCHECK_PASSWORD:=}"
+
+# --- Connection (sqlite) -------------------------------------------------
+: "${DB_HEALTHCHECK_SQLITE_PATH:=/path/to/app.sqlite3}"
+
+# --- Thresholds ----------------------------------------------------------
+# Tablespace size, in MB. Postgres and SQLite backends classify by
+# absolute size (see README.md for why); the Oracle backend uses percent
+# instead (TABLESPACE_WARN_PCT / TABLESPACE_CRIT_PCT).
+: "${TABLESPACE_WARN_MB:=1024}"
+: "${TABLESPACE_CRIT_MB:=5120}"
+: "${TABLESPACE_WARN_PCT:=80}"
+: "${TABLESPACE_CRIT_PCT:=90}"
+
+: "${SESSIONS_WARN:=50}"
+: "${SESSIONS_CRIT:=100}"
+
+: "${BLOCKED_WARN:=1}"
+: "${BLOCKED_CRIT:=5}"
+
+: "${INVALID_OBJECTS_WARN:=1}"
+: "${INVALID_OBJECTS_CRIT:=5}"
+
+: "${LONG_QUERY_THRESHOLD_SEC:=300}"        # 5 minutes
+: "${LONG_QUERY_WARN:=1}"
+: "${LONG_QUERY_CRIT:=3}"

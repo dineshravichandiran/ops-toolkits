@@ -1,0 +1,122 @@
+#!/usr/bin/env bash
+#
+# db-healthcheck - tablespace, session, lock, object-validity, and
+# long-running-query checks for a relational database.
+#
+# Backends: postgres (the one actually tested here -- see README.md),
+# oracle (written against Oracle's documented views, UNVERIFIED against a
+# real instance), sqlite (zero-dependency plumbing check only; most
+# checks report UNKNOWN since SQLite has no server/session/lock concept).
+#
+# Exit codes (Nagios convention, matching the rest of this toolkit):
+#   0 OK    1 WARNING    2 CRITICAL    3 UNKNOWN
+#
+# Credentials are never accepted as CLI arguments (visible to anyone on
+# the box via `ps`). They come from environment variables, or from a
+# gitignored conf/db-healthcheck.conf, or from a *_FILE variable pointing
+# at a secret file (see conf/db-healthcheck.conf.example).
+#
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
+# shellcheck source=../lib/common.sh
+source "${ROOT_DIR}/lib/common.sh" || { echo "cannot source lib/common.sh" >&2; exit 3; }
+
+BACKEND="${DB_HEALTHCHECK_BACKEND:-postgres}"
+OUTPUT_MODE="text"
+
+usage() {
+  cat <<'EOF'
+Usage: db-healthcheck [OPTIONS]
+
+  --backend NAME    postgres (default), oracle, or sqlite.
+                     Overrides DB_HEALTHCHECK_BACKEND.
+  --json             Emit machine-readable JSON instead of text.
+  -h, --help         Show this help.
+
+Connection details and thresholds are read from environment variables
+and/or conf/db-healthcheck.conf (gitignored -- see
+conf/db-healthcheck.conf.example for every supported variable).
+
+Examples:
+  # Check a Postgres instance using conf/db-healthcheck.conf
+  ./bin/db-healthcheck
+
+  # Override the backend for one run
+  DB_HEALTHCHECK_BACKEND=sqlite ./bin/db-healthcheck
+
+  # Machine-readable output for a monitoring agent
+  ./bin/db-healthcheck --json
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --backend) BACKEND="${2:-}"; [[ -z "$BACKEND" ]] && die "--backend needs a value"; shift 2 ;;
+    --json)    OUTPUT_MODE="json"; shift ;;
+    -h|--help) usage; exit 0 ;;
+    *)         die "unknown option: $1 (try --help)" ;;
+  esac
+done
+
+# Load config if present. Uses `: "${VAR:=default}"` throughout so a
+# variable already set in the environment (by the caller, or by a secret
+# manager injecting DB_HEALTHCHECK_PASSWORD) is never clobbered by the
+# file -- the file only fills in what's still unset.
+CONF="${ROOT_DIR}/conf/db-healthcheck.conf"
+[[ -f "$CONF" ]] && source "$CONF"
+
+case "$BACKEND" in
+  postgres)
+    # shellcheck source=../lib/backend-postgres.sh
+    source "${ROOT_DIR}/lib/backend-postgres.sh" || die "cannot source lib/backend-postgres.sh"
+    export PGHOST="${DB_HEALTHCHECK_HOST:-127.0.0.1}"
+    export PGPORT="${DB_HEALTHCHECK_PORT:-5432}"
+    export PGDATABASE="${DB_HEALTHCHECK_NAME:-postgres}"
+    export PGUSER="${DB_HEALTHCHECK_USER:-postgres}"
+    PGPASSWORD="$(read_secret DB_HEALTHCHECK_PASSWORD DB_HEALTHCHECK_PASSWORD_FILE)" || die "set DB_HEALTHCHECK_PASSWORD or DB_HEALTHCHECK_PASSWORD_FILE"
+    export PGPASSWORD
+    command -v psql >/dev/null 2>&1 || die "psql not found on PATH (required for the postgres backend)"
+    ;;
+  oracle)
+    # shellcheck source=../lib/backend-oracle.sh
+    source "${ROOT_DIR}/lib/backend-oracle.sh" || die "cannot source lib/backend-oracle.sh"
+    SQLHOST="${DB_HEALTHCHECK_HOST:-127.0.0.1}"
+    SQLPORT="${DB_HEALTHCHECK_PORT:-1521}"
+    SQLSERVICE="${DB_HEALTHCHECK_NAME:?DB_HEALTHCHECK_NAME (Oracle service name) is required}"
+    SQLUSER="${DB_HEALTHCHECK_USER:?DB_HEALTHCHECK_USER is required}"
+    SQLPASSWORD="$(read_secret DB_HEALTHCHECK_PASSWORD DB_HEALTHCHECK_PASSWORD_FILE)" || die "set DB_HEALTHCHECK_PASSWORD or DB_HEALTHCHECK_PASSWORD_FILE"
+    command -v sqlplus >/dev/null 2>&1 || die "sqlplus not found on PATH (required for the oracle backend)"
+    ;;
+  sqlite)
+    # shellcheck source=../lib/backend-sqlite.sh
+    source "${ROOT_DIR}/lib/backend-sqlite.sh" || die "cannot source lib/backend-sqlite.sh"
+    SQLITE_DB_PATH="${DB_HEALTHCHECK_SQLITE_PATH:?DB_HEALTHCHECK_SQLITE_PATH is required for the sqlite backend}"
+    command -v sqlite3 >/dev/null 2>&1 || die "sqlite3 not found on PATH (required for the sqlite backend)"
+    ;;
+  *) die "unknown backend: ${BACKEND} (expected postgres, oracle, or sqlite)" ;;
+esac
+
+run_all_checks() {
+  printf '%sdb-healthcheck%s  |  backend: %s  |  %s\n' "$C_BOLD" "$C_RESET" "$BACKEND" "$(log_ts)"
+  backend_run_all_checks
+  print_summary
+}
+
+if [[ "$OUTPUT_MODE" == "json" ]]; then
+  # Not `raw="$(run_all_checks | ...)"`: command substitution forks a
+  # subshell, and report()'s updates to WORST_STATUS/CHECKS_RUN/etc are
+  # plain variable assignments that would then be lost when the subshell
+  # exits, leaving every count at zero regardless of what actually ran.
+  # Redirecting straight to /dev/null keeps run_all_checks in the current
+  # shell so those updates stick.
+  run_all_checks >/dev/null
+  printf '{"backend":"%s","timestamp":"%s","worst_status":%d,"checks_run":%d,"ok":%d,"warning":%d,"critical":%d}\n' \
+    "$BACKEND" "$(log_ts)" "$WORST_STATUS" "$CHECKS_RUN" "$CHECKS_OK" "$CHECKS_WARN" "$CHECKS_CRIT"
+  exit "$WORST_STATUS"
+fi
+
+run_all_checks
+exit "$WORST_STATUS"
