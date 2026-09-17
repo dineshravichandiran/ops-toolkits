@@ -1,0 +1,141 @@
+#!/usr/bin/env bash
+#
+# webserver-config-audit - checks an Apache httpd.conf and/or a Tomcat
+# server.xml against a policy file, flagging configuration drift.
+#
+# Read-only: never modifies the configs it audits.
+#
+# Exit codes:
+#   0   PASS  -- every check passed
+#   1   WARN  -- at least one check couldn't be confidently graded
+#   2   FAIL  -- at least one check found a real deviation from policy
+#   3   usage or internal error
+#
+set -uo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT_DIR="$(dirname "$SCRIPT_DIR")"
+
+source "${ROOT_DIR}/lib/common.sh" || { echo "cannot source lib/common.sh" >&2; exit 3; }
+source "${ROOT_DIR}/lib/policy.sh" || die "cannot source lib/policy.sh"
+source "${ROOT_DIR}/lib/apache.sh" || die "cannot source lib/apache.sh"
+source "${ROOT_DIR}/lib/tomcat.sh" || die "cannot source lib/tomcat.sh"
+
+HTTPD_CONF=""
+SERVER_XML=""
+WEBAPPS_DIR=""
+POLICY_FILE=""
+OUTPUT_MODE="text"
+
+usage() {
+  cat <<'EOF'
+Usage: webserver-config-audit --policy FILE [--httpd-conf FILE] [--server-xml FILE] [OPTIONS]
+
+  --policy FILE       Policy YAML to check against. Required.
+  --httpd-conf FILE   Apache httpd.conf-style config to audit.
+  --server-xml FILE   Tomcat server.xml to audit.
+  --webapps-dir DIR   Where to look for default manager/host-manager
+                       webapps. Defaults to <server-xml's dir>/../webapps.
+  --json              Emit machine-readable JSON instead of text.
+  -h, --help          Show this help.
+
+At least one of --httpd-conf / --server-xml is required.
+
+Exit codes:
+  0  PASS   1  WARN   2  FAIL   3  usage/internal error
+
+Examples:
+  webserver-config-audit --policy policy.yaml --httpd-conf /etc/httpd/conf/httpd.conf
+  webserver-config-audit --policy policy.yaml --server-xml /opt/tomcat/conf/server.xml
+EOF
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --policy)      POLICY_FILE="${2:-}"; shift 2 ;;
+    --httpd-conf)  HTTPD_CONF="${2:-}"; shift 2 ;;
+    --server-xml)  SERVER_XML="${2:-}"; shift 2 ;;
+    --webapps-dir) WEBAPPS_DIR="${2:-}"; shift 2 ;;
+    --json)        OUTPUT_MODE="json"; shift ;;
+    -h|--help)     usage; exit 0 ;;
+    *)             echo "unknown option: $1 (try --help)" >&2; exit 3 ;;
+  esac
+done
+
+[[ -n "$POLICY_FILE" ]] || { echo "--policy is required (try --help)" >&2; exit 3; }
+[[ -n "$HTTPD_CONF" || -n "$SERVER_XML" ]] || { echo "at least one of --httpd-conf / --server-xml is required (try --help)" >&2; exit 3; }
+[[ -z "$HTTPD_CONF" || -f "$HTTPD_CONF" ]] || { echo "httpd.conf not found: $HTTPD_CONF" >&2; exit 3; }
+[[ -z "$SERVER_XML" || -f "$SERVER_XML" ]] || { echo "server.xml not found: $SERVER_XML" >&2; exit 3; }
+
+if [[ -n "$SERVER_XML" ]]; then
+  command -v xmllint >/dev/null 2>&1 || die "xmllint not found on PATH (required to audit server.xml)"
+  [[ -n "$WEBAPPS_DIR" ]] || WEBAPPS_DIR="$(cd "$(dirname "$SERVER_XML")/.." && pwd)/webapps"
+fi
+
+load_policy "$POLICY_FILE"
+
+run_all_checks() {
+  if [[ -n "$HTTPD_CONF" ]]; then
+    section "Apache (${HTTPD_CONF})"
+    check_server_tokens "$HTTPD_CONF" "$POLICY_APACHE_SERVER_TOKENS"
+    check_server_signature "$HTTPD_CONF" "$POLICY_APACHE_SERVER_SIGNATURE"
+    check_timeout "$HTTPD_CONF" "$POLICY_APACHE_TIMEOUT_MAX_SECONDS"
+    [[ "$POLICY_APACHE_RESTRICT_SERVER_STATUS" == "true" ]] && check_server_status "$HTTPD_CONF"
+    [[ "$POLICY_APACHE_RESTRICT_SERVER_INFO" == "true" ]] && check_server_info "$HTTPD_CONF"
+    if (( ${#POLICY_DIR_LISTING_DISABLED[@]} > 0 )); then
+      local path
+      for path in "${POLICY_DIR_LISTING_DISABLED[@]}"; do
+        check_directory_listing "$HTTPD_CONF" "$path"
+      done
+    fi
+  fi
+
+  if [[ -n "$SERVER_XML" ]]; then
+    section "Tomcat (${SERVER_XML})"
+    check_tomcat_connector "$SERVER_XML" "$POLICY_TOMCAT_PORT" "$POLICY_TOMCAT_PROTOCOL" \
+      "$POLICY_TOMCAT_MIN_MAX_THREADS" "$POLICY_TOMCAT_MAX_CONN_TIMEOUT_MS"
+    # Guarded rather than passed unconditionally: expanding an empty
+    # array under `set -u` is treated as an unbound variable in bash 3.2
+    # (macOS's shipped bash) -- the same class of bug documented in
+    # deploy-validator's lib/checks.sh.
+    if (( ${#POLICY_DEFAULT_APPS_ABSENT[@]} > 0 )); then
+      check_tomcat_default_apps "$WEBAPPS_DIR" "${POLICY_DEFAULT_APPS_ABSENT[@]}"
+    fi
+    check_tomcat_ssl "$SERVER_XML" "$POLICY_TOMCAT_SSL_MIN_PROTOCOL"
+  fi
+}
+
+if [[ "$OUTPUT_MODE" == "json" ]]; then
+  # Plain redirection, not `out="$(run_all_checks)"`: command substitution
+  # forks a subshell, which would discard report()'s updates to the
+  # ITEMS_*/FINDINGS counters -- the same bug documented (and fixed) in
+  # deploy-validator's and windchill-ops-toolkit's --json paths.
+  run_all_checks >/dev/null
+
+  printf '{\n'
+  printf '  "policy": "%s",\n' "$POLICY_FILE"
+  printf '  "timestamp": "%s",\n' "$(log_ts)"
+  printf '  "items_total": %d,\n' "$ITEMS_TOTAL"
+  printf '  "items_pass": %d,\n' "$ITEMS_PASS"
+  printf '  "items_warn": %d,\n' "$ITEMS_WARN"
+  printf '  "items_fail": %d,\n' "$ITEMS_FAIL"
+  printf '  "findings": [\n'
+  first=1
+  for entry in "${FINDINGS[@]:-}"; do
+    [[ -z "$entry" ]] && continue
+    status="${entry%%|*}"; msg="${entry#*|}"
+    name="${msg%%: *}"; detail="${msg#*: }"
+    name="${name//\"/\\\"}"; detail="${detail//\"/\\\"}"
+    [[ $first -eq 0 ]] && printf ',\n'
+    printf '    {"status": "%s", "item": "%s", "message": "%s"}' "$status" "$name" "$detail"
+    first=0
+  done
+  printf '\n  ]\n'
+  printf '}\n'
+  exit "$(exit_code)"
+fi
+
+printf '%swebserver-config-audit%s  |  policy: %s  |  %s\n' "$C_BOLD" "$C_RESET" "$POLICY_FILE" "$(log_ts)"
+run_all_checks
+print_summary
+exit "$(exit_code)"
