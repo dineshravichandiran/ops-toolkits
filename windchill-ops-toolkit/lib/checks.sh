@@ -8,18 +8,39 @@
 # ---------------------------------------------------------------------------
 check_disk_usage() {
   local warn="${DISK_WARN_PCT:-80}" crit="${DISK_CRIT_PCT:-90}"
-  local mount used avail pct
+  local fs mount used avail_kb pct avail_human
 
-  while read -r _ _ used avail pct mount; do
+  # `-x <type>` (GNU df) has no BSD/macOS equivalent -- macOS's df rejects
+  # it outright and exits before printing anything, which silently turned
+  # this whole check into a no-op on macOS (empty input, so the while loop
+  # never runs a single iteration). Filtering by the Filesystem column
+  # instead of a df flag works identically on both.
+  #
+  # `-k` instead of `-h`: BSD/macOS df's `-P` (needed for stable column
+  # order) silently forces raw 512-byte blocks and ignores `-h` entirely,
+  # so the "free" figure was a block count with no unit printed next to
+  # it -- readable as bytes, actually ~200x too small. `-k` gives
+  # unambiguous 1024-byte blocks on both GNU and BSD df, and the human
+  # string is formatted here instead of trusting either df's `-h`.
+  while read -r fs _ used avail_kb pct mount; do
+    case "$fs" in
+      tmpfs|devtmpfs|overlay|devfs|map) continue ;;
+    esac
     pct="${pct%\%}"
     [[ "$pct" =~ ^[0-9]+$ ]] || continue
+    [[ "$avail_kb" =~ ^[0-9]+$ ]] || continue
 
-    local msg="${pct}% used, ${avail} free on ${mount}"
+    if   (( avail_kb >= 1048576 )); then avail_human="$(( avail_kb / 1048576 ))G"
+    elif (( avail_kb >= 1024 ));    then avail_human="$(( avail_kb / 1024 ))M"
+    else                                 avail_human="${avail_kb}K"
+    fi
+
+    local msg="${pct}% used, ${avail_human} free on ${mount}"
     if   (( pct >= crit )); then report "$STATUS_CRIT" "disk:${mount}" "$msg"
     elif (( pct >= warn )); then report "$STATUS_WARN" "disk:${mount}" "$msg"
     else                        report "$STATUS_OK"   "disk:${mount}" "$msg"
     fi
-  done < <(df -hP -x tmpfs -x devtmpfs -x overlay 2>/dev/null | tail -n +2)
+  done < <(df -kP 2>/dev/null | tail -n +2)
 }
 
 # ---------------------------------------------------------------------------
