@@ -1,0 +1,17 @@
+{
+  "files": [
+    { "path": "/opt/app/webapps/app.war", "version": "3.4.0" },
+    { "path": "/opt/app/conf/server.xml" },
+    { "path": "/etc/httpd/conf.d/app-proxy.conf" },
+    { "path": "/opt/app/bin/catalina.sh" }
+  ],
+  "version_checks": [
+    { "path": "/opt/app/webapps/app/META-INF/MANIFEST.MF", "pattern": "Implementation-Version: 3.4.0" },
+    { "path": "/opt/app/RELEASE", "pattern": "^release=3\\.4\\.0$" }
+  ],
+  "services": ["httpd", "tomcat"],
+  "endpoints": [
+    { "url": "http://localhost:8080/app/health", "expected_status": 200 },
+    { "url": "http://localhost/app/", "expected_status": 302 }
+  ]
+}

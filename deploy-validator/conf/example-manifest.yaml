@@ -1,0 +1,40 @@
+# example-manifest.yaml
+#
+# Illustrative manifest for a generic Java web application deployed behind
+# Apache (as a reverse proxy) to Tomcat (as the application container).
+# Every path, hostname and version below is a placeholder -- adjust all of
+# them to match the application actually being deployed.
+
+# Files that must exist after deployment: the application archive was
+# unpacked, config was templated out, and so on. "version" is optional; when
+# present it is checked the same way as version_checks below.
+files:
+  - path: /opt/app/webapps/app.war
+    version: "3.4.0"
+  - path: /opt/app/conf/server.xml
+  - path: /etc/httpd/conf.d/app-proxy.conf
+  - path: /opt/app/bin/catalina.sh
+
+# Version strings to grep for. Useful when the version marker lives in a
+# file that isn't itself the thing you're checking exists (e.g. a build
+# manifest, a MANIFEST.MF unpacked from the archive, an about page cached to
+# disk). "pattern" is passed to grep, so basic regex syntax works.
+version_checks:
+  - path: /opt/app/webapps/app/META-INF/MANIFEST.MF
+    pattern: "Implementation-Version: 3.4.0"
+  - path: /opt/app/RELEASE
+    pattern: "^release=3\\.4\\.0$"
+
+# Services that must be running after the deployment restarts them.
+services:
+  - httpd
+  - tomcat
+
+# HTTP endpoints that must return a specific status code. A 200 on the
+# application's health endpoint and a 302 on an authenticated route are
+# both reasonable "the deployment landed" signals.
+endpoints:
+  - url: "http://localhost:8080/app/health"
+    expected_status: 200
+  - url: "http://localhost/app/"
+    expected_status: 302

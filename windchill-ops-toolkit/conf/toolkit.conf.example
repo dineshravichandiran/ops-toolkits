@@ -1,0 +1,34 @@
+# toolkit.conf - copy to conf/toolkit.conf and edit for your host.
+# Every value has a safe default; override only what you need.
+
+# --- Thresholds -------------------------------------------------------------
+DISK_WARN_PCT=80
+DISK_CRIT_PCT=90
+
+JVM_WARN_PCT=75
+JVM_CRIT_PCT=90
+
+# --- Retention --------------------------------------------------------------
+LOG_RETENTION_DAYS=30
+TEMP_RETENTION_DAYS=7
+TEMP_WARN_COUNT=500
+
+# --- Paths to inspect -------------------------------------------------------
+# Space-separated. Adjust to match the installation on this host.
+LOG_DIRS="/opt/ptc/Windchill/logs /var/log/tomcat /var/log/httpd"
+TEMP_DIRS="/opt/ptc/Windchill/temp /tmp"
+
+# --- Services ---------------------------------------------------------------
+# Format: "servicename:processpattern" per entry.
+SERVICES="httpd:httpd tomcat:catalina"
+
+# --- Ports ------------------------------------------------------------------
+# Format: "host:port:label" per entry.
+PORTS="127.0.0.1:80:apache 127.0.0.1:8080:tomcat"
+
+# --- Post-change validation endpoints --------------------------------------
+# Format: "url:expected_http_code" per entry. Leave empty to skip.
+HTTP_ENDPOINTS=""
+
+# --- JVM --------------------------------------------------------------------
+JVM_PROCESS_PATTERN="java"
