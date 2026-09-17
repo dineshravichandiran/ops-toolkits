@@ -1,0 +1,4 @@
+conf/db-healthcheck.conf
+*.sqlite3
+*.log
+/tmp/
