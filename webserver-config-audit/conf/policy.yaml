@@ -1,0 +1,47 @@
+# policy.yaml - the "standard" this audit checks configs against.
+# This is data, not code: the same bin/webserver-config-audit binary
+# checks any Apache httpd.conf / Tomcat server.xml against whichever
+# policy file you point it at. Nothing here refers to a real company,
+# product, or hostname.
+
+apache:
+  # ServerTokens/ServerSignature control how much version information
+  # Apache volunteers to anyone probing the server. Expected values are
+  # matched case-insensitively against what the config actually sets.
+  server_tokens: Prod
+  server_signature: Off
+
+  # Timeout is a resource-exhaustion control (a slow client holding a
+  # connection open). Anything higher than this is a finding.
+  timeout_max_seconds: 60
+
+  # /server-status and /server-info (mod_status, mod_info) must never be
+  # reachable with no access restriction at all. If the Location block
+  # for one isn't present in the config, it's treated as not exposed --
+  # SetHandler is what actually turns the handler on.
+  restrict_server_status: true
+  restrict_server_info: true
+
+  # Directories that must have directory listing (Options Indexes)
+  # explicitly disabled.
+  directory_listing_disabled:
+    - /var/www/html
+
+tomcat:
+  connector:
+    port: 8080
+    protocol: "HTTP/1.1"
+    min_max_threads: 150
+    max_connection_timeout_ms: 20000
+
+  # Removed in production: leaving the default admin webapps deployed is
+  # one of the most common "we meant to do that during setup and never
+  # got back to it" findings.
+  default_apps_must_be_absent:
+    - manager
+    - host-manager
+
+  ssl:
+    # Only checked if the server.xml actually configures an SSL/TLS
+    # connector at all -- this section does not require one to exist.
+    min_protocol: TLSv1.2
