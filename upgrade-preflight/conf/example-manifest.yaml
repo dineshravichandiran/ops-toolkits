@@ -1,0 +1,40 @@
+# example-manifest.yaml - a generic web application upgrade scenario.
+# Nothing here refers to a real company, product, or hostname -- adjust
+# every path, command, and pattern before use.
+
+# Free space required on each path that matters for the upgrade: the
+# install directory (the upgrade unpacks a new release into it) and the
+# directory the backup itself lands in.
+disk_space:
+  - path: /opt/app
+    min_free_mb: 5000
+  - path: /backups
+    min_free_mb: 10000
+
+# A backup must exist and be recent enough that rolling back to it after
+# a failed upgrade wouldn't lose more than a day of data.
+backups:
+  - path: /backups/app-latest.tar.gz
+    max_age_hours: 24
+
+# Confirm the host is actually on the version this upgrade expects to
+# start from, before upgrading it to something else. Source is "file"
+# (read verbatim) or "command" (run and read stdout) -- whichever the
+# application actually exposes.
+versions:
+  - source: file
+    path: /opt/app/VERSION
+    pattern: "3.3."
+
+# Application services should be stopped before the upgrade begins;
+# nothing should be holding files open or serving traffic mid-change.
+services:
+  - name: app-server
+    expected_state: stopped
+  - name: app-worker
+    expected_state: stopped
+
+# No leftover zombie processes from the application, which would
+# indicate something from a previous run didn't shut down cleanly.
+zombie_patterns:
+  - app-worker

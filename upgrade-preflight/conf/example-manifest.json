@@ -1,0 +1,17 @@
+{
+  "disk_space": [
+    { "path": "/opt/app", "min_free_mb": 5000 },
+    { "path": "/backups", "min_free_mb": 10000 }
+  ],
+  "backups": [
+    { "path": "/backups/app-latest.tar.gz", "max_age_hours": 24 }
+  ],
+  "versions": [
+    { "source": "file", "path": "/opt/app/VERSION", "pattern": "3.3." }
+  ],
+  "services": [
+    { "name": "app-server", "expected_state": "stopped" },
+    { "name": "app-worker", "expected_state": "stopped" }
+  ],
+  "zombie_patterns": ["app-worker"]
+}
