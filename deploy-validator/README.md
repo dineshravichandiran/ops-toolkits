@@ -182,6 +182,8 @@ OVERALL: FAIL
 ./tests/run-tests.sh
 ```
 
+![deploy-validator test run](../proofs/2-deploy-validator.png)
+
 30 assertions, run against the real `bin/deploy-validator` binary — not
 mocked. The suite builds real fixture files, starts a real background
 process with a unique marker so the service check has something genuine to

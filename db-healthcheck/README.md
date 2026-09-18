@@ -128,6 +128,8 @@ Summary
 ./tests/run-tests.sh
 ```
 
+![db-healthcheck test run](../proofs/3-db-healthcheck.png)
+
 41 assertions. The first block is pure-bash unit tests (threshold
 classification, credential resolution) with no database involved. The
 second exercises the SQLite backend against real local files, including a
