@@ -102,6 +102,8 @@ Nothing in either refers to a real company, product, or hostname.
 ./tests/run-tests.sh
 ```
 
+![upgrade-preflight test run](../proofs/4-upgrade-preflight.png)
+
 39 assertions, run against the real `bin/upgrade-preflight` binary, no
 mocking: a real directory for the disk-space check, a real file with its
 mtime deliberately set 48 hours in the past for the stale-backup case, a

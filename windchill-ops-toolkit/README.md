@@ -115,6 +115,8 @@ SERVICES="httpd:httpd tomcat:catalina"
 ./tests/run-tests.sh
 ```
 
+![windchill-ops-toolkit test run](../proofs/1-windchill-ops-toolkit.png)
+
 16 tests covering threshold boundaries, `-Xmx` parsing (`4g`, `2G`, `512m`,
 absent), the dry-run guard, worst-status propagation, and graceful handling of
 missing paths. No external test framework required.

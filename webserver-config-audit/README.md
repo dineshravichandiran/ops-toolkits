@@ -129,6 +129,9 @@ differences are real, not cosmetic:
 ./tests/run-tests.ps1     # 36 assertions
 ```
 
+![webserver-config-audit Bash test run](../proofs/5-webserver-config-audit-bash.png)
+![webserver-config-audit PowerShell test run](../proofs/6-webserver-config-audit-powershell.png)
+
 Both build real fixtures — copies of the example configs with exactly
 one deviation each — and run the real binary against them, no mocking.
 Both cover: a fully-compliant baseline, each Apache check failing on its

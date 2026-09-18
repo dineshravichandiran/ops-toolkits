@@ -72,6 +72,30 @@ whichever OS the web server actually lives on.
   says so — WARN or an explicit unverified label — rather than guessing
   PASS or FAIL.
 
+## Test proof
+
+Real terminal screenshots, not pasted text — each is a genuine
+`screencapture` of a Terminal.app window running the actual suite listed
+above it, taken right after the run finished.
+
+**windchill-ops-toolkit — 16/16**
+![windchill-ops-toolkit test run](proofs/1-windchill-ops-toolkit.png)
+
+**deploy-validator — 30/30**
+![deploy-validator test run](proofs/2-deploy-validator.png)
+
+**db-healthcheck — 41/41** (includes a real disposable Docker Postgres container)
+![db-healthcheck test run](proofs/3-db-healthcheck.png)
+
+**upgrade-preflight — 39/39** (includes a genuine zombie process fixture)
+![upgrade-preflight test run](proofs/4-upgrade-preflight.png)
+
+**webserver-config-audit (Bash) — 38/38**
+![webserver-config-audit Bash test run](proofs/5-webserver-config-audit-bash.png)
+
+**webserver-config-audit (PowerShell) — 36/36**
+![webserver-config-audit PowerShell test run](proofs/6-webserver-config-audit-powershell.png)
+
 ## Requirements
 
 Bash 3.2+ and standard coreutils across the board. Beyond that, per
