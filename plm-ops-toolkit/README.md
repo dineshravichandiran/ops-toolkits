@@ -62,7 +62,7 @@ mode: report-only (use --apply to perform cleanup)
 
 Filesystem
 [OK      ] disk:/                     42% used, 58G free on /
-[WARNING ] disk:/opt/ptc              83% used, 41G free on /opt/ptc
+[WARNING ] disk:/opt/app              83% used, 41G free on /opt/app
 
 Services
 [OK      ] service:httpd              active (systemd)
