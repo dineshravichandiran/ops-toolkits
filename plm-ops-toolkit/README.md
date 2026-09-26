@@ -1,6 +1,6 @@
 # PLM Ops Toolkit
 
-Pre-change and post-change health checks for Windchill-style application hosts
+Pre-change and post-change health checks for PLM-style application hosts
 (Apache, Tomcat, JVM, disk, logs).
 
 Built from patterns I use running controlled changes on production PLM
@@ -72,7 +72,7 @@ JVM
 [WARNING ] jvm:heap                   pid 4181: RSS 3201MB of Xmx 4096MB (78%)
 
 Logs and temporary files
-[WARNING ] logs:/opt/ptc/Windchill/logs   214 file(s) older than 30d, ~1.9GB reclaimable
+[WARNING ] logs:/opt/plm/app/logs   214 file(s) older than 30d, ~1.9GB reclaimable
   would delete 214 log file(s) (dry-run)
 
 Summary
@@ -105,7 +105,7 @@ DISK_CRIT_PCT=90
 JVM_WARN_PCT=75
 JVM_CRIT_PCT=90
 LOG_RETENTION_DAYS=30
-LOG_DIRS="/opt/ptc/Windchill/logs /var/log/tomcat"
+LOG_DIRS="/opt/plm/app/logs /var/log/tomcat"
 SERVICES="httpd:httpd tomcat:catalina"
 ```
 
@@ -115,7 +115,7 @@ SERVICES="httpd:httpd tomcat:catalina"
 ./tests/run-tests.sh
 ```
 
-![windchill-ops-toolkit test run](../proofs/1-windchill-ops-toolkit.png)
+![plm-ops-toolkit test run](../proofs/1-plm-ops-toolkit.png)
 
 16 tests covering threshold boundaries, `-Xmx` parsing (`4g`, `2G`, `512m`,
 absent), the dry-run guard, worst-status propagation, and graceful handling of
@@ -128,10 +128,10 @@ Tested on Linux and on macOS's shipped `/bin/bash` (3.2).
 
 ## Scope and limitations
 
-This validates the host and application layer. It does not talk to Windchill's
-internal APIs, read the Windchill database, or parse method server queues. It
+This validates the host and application layer. It does not talk to the PLM app's
+internal APIs, read the PLM database, or parse method server queues. It
 deliberately stops at what can be checked from the OS without application
 credentials, which is what makes it safe to run on any host in an estate.
 
-Paths in the example configuration follow a common Windchill layout but are
+Paths in the example configuration follow a common PLM application layout but are
 configurable; nothing here is specific to one installation.

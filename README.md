@@ -6,9 +6,9 @@ against the baseline, gate a pipeline on the result, audit for drift
 afterward. Mostly Bash, with a PowerShell counterpart where a Windows host
 is the realistic target.
 
-## [windchill-ops-toolkit](windchill-ops-toolkit/) — done, 16/16 tests
+## [plm-ops-toolkit](plm-ops-toolkit/) — done, 16/16 tests
 
-Pre-change and post-change health checks for Windchill-style application
+Pre-change and post-change health checks for PLM-style application
 hosts (Apache, Tomcat, JVM, disk, logs). Report-only by default; Nagios-style
 exit codes so any monitoring agent can consume it directly.
 
@@ -52,7 +52,7 @@ whichever OS the web server actually lives on.
 
 - **Report-only / read-only by default.** None of these tools modify,
   delete, or restart anything unless explicitly told to (`--apply` in
-  windchill-ops-toolkit; everything else never touches the system it
+  plm-ops-toolkit; everything else never touches the system it
   checks at all).
 - **No external test framework.** Every project's test suite is
   self-contained and runs against the real binary — real fixture files,
@@ -78,8 +78,8 @@ Real terminal screenshots, not pasted text — each is a genuine
 `screencapture` of a Terminal.app window running the actual suite listed
 above it, taken right after the run finished.
 
-**windchill-ops-toolkit — 16/16**
-![windchill-ops-toolkit test run](proofs/1-windchill-ops-toolkit.png)
+**plm-ops-toolkit — 16/16**
+![plm-ops-toolkit test run](proofs/1-plm-ops-toolkit.png)
 
 **deploy-validator — 30/30**
 ![deploy-validator test run](proofs/2-deploy-validator.png)

@@ -7,7 +7,7 @@
 # ---------------------------------------------------------------------------
 # Disk space. Uses `df -kP` (1024-byte blocks), not `-h`: BSD/macOS df's
 # `-P` silently forces raw 512-byte blocks and ignores `-h` entirely (a
-# real bug caught the hard way building windchill-ops-toolkit's disk
+# real bug caught the hard way building plm-ops-toolkit's disk
 # check), so `-k` is the one block size that means the same thing on both
 # GNU and BSD df.
 # ---------------------------------------------------------------------------
@@ -39,7 +39,7 @@ check_disk_space() {
 
 # ---------------------------------------------------------------------------
 # Backup freshness. `find -mmin` (minutes), not `-mtime` (whole days
-# only, per windchill-ops-toolkit's log-retention check): an upgrade
+# only, per plm-ops-toolkit's log-retention check): an upgrade
 # window is measured in hours, and day-granularity would accept a backup
 # up to 47 hours old under a "24 hour" policy.
 # ---------------------------------------------------------------------------

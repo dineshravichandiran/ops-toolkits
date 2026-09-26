@@ -132,7 +132,7 @@ of zombies under one specific parent is exactly what a worker pool that
 stopped reaping its children looks like.
 
 **Day-granularity retention checks silently accept a backup up to 47
-hours old under a "24 hour" policy.** `windchill-ops-toolkit`'s log
+hours old under a "24 hour" policy.** `plm-ops-toolkit`'s log
 cleanup uses `find -mtime +N` (whole days) for its retention check, which
 is the right granularity for "delete logs older than 30 days." Copying
 that pattern for backup freshness would have been wrong: `find -mtime
@@ -143,7 +143,7 @@ instead, which both GNU and BSD `find` support identically, and computed
 the threshold as `max_age_hours * 60`.
 
 **`df -hP`'s silently-wrong units on macOS, avoided by knowing to look
-for it.** `windchill-ops-toolkit`'s disk check hit this directly:
+for it.** `plm-ops-toolkit`'s disk check hit this directly:
 BSD/macOS `df`'s `-P` flag silently forces raw 512-byte blocks and
 ignores `-h` entirely, so a "free space" figure came out looking like
 bytes but was actually ~200x too small. `check_disk_space` here uses

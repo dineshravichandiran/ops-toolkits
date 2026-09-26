@@ -109,7 +109,7 @@ if [[ "$OUTPUT_MODE" == "json" ]]; then
   # Plain redirection, not `out="$(run_all_checks)"`: command substitution
   # forks a subshell, which would discard report()'s updates to the
   # ITEMS_*/FINDINGS counters -- the same bug documented (and fixed) in
-  # deploy-validator's and windchill-ops-toolkit's --json paths.
+  # deploy-validator's and plm-ops-toolkit's --json paths.
   run_all_checks >/dev/null
 
   printf '{\n'

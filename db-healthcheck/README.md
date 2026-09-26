@@ -168,7 +168,7 @@ look for it.** `deploy-validator`'s README documents a bug where
 path was written directly as `run_all_checks >/dev/null` (plain
 redirection, no subshell) from the start — worth noting here because the
 same bug was *also* found, independently, already live in
-`windchill-ops-toolkit`'s `--json` and `--compare` modes while this project
+`plm-ops-toolkit`'s `--json` and `--compare` modes while this project
 was being built (see that project's git history), which is exactly the
 kind of bug that passes review and only shows up when someone actually
 runs the `--json` flag and checks the exit code, not just the text output.
@@ -186,7 +186,7 @@ licensing reasons) with Postgres running in Docker Desktop.
 ## Scope and limitations
 
 This checks database-level health signals visible through ordinary SQL —
-it does not touch OS-level resources (that's `windchill-ops-toolkit`'s
+it does not touch OS-level resources (that's `plm-ops-toolkit`'s
 job) or verify the schema matches what an application expects (that's
 closer to `deploy-validator`'s territory). The Oracle backend in
 particular should be treated as a starting point for real testing, not as

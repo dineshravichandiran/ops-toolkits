@@ -26,7 +26,7 @@ section() {
 
 # --- result tracking ----------------------------------------------------
 # Every item checked is either PASS or FAIL -- a binary GO/NO-GO question,
-# same as deploy-validator, unlike windchill-ops-toolkit's graduated
+# same as deploy-validator, unlike plm-ops-toolkit's graduated
 # OK/WARNING/CRITICAL scale (there's no "partially safe to upgrade").
 ITEMS_TOTAL=0
 ITEMS_PASS=0

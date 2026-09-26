@@ -3,7 +3,7 @@
 # Each check is independent and reports through report() from common.sh.
 
 # ---------------------------------------------------------------------------
-# Disk usage. Windchill vaults and log directories fill quietly; this is the
+# Disk usage. PLM vaults and log directories fill quietly; this is the
 # single most common cause of avoidable application outages in PLM estates.
 # ---------------------------------------------------------------------------
 check_disk_usage() {

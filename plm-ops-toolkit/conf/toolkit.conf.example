@@ -15,8 +15,8 @@ TEMP_WARN_COUNT=500
 
 # --- Paths to inspect -------------------------------------------------------
 # Space-separated. Adjust to match the installation on this host.
-LOG_DIRS="/opt/ptc/Windchill/logs /var/log/tomcat /var/log/httpd"
-TEMP_DIRS="/opt/ptc/Windchill/temp /tmp"
+LOG_DIRS="/opt/plm/app/logs /var/log/tomcat /var/log/httpd"
+TEMP_DIRS="/opt/plm/app/temp /tmp"
 
 # --- Services ---------------------------------------------------------------
 # Format: "servicename:processpattern" per entry.

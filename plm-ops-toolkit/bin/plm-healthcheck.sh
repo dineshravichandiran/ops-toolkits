@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # plm-healthcheck.sh - pre-change and post-change health checks for
-# Windchill-style application hosts (Apache, Tomcat, JVM, disk, logs).
+# PLM-style application hosts (Apache, Tomcat, JVM, disk, logs).
 #
 # Designed around the sequence used for controlled production changes:
 #   1. run before a change to capture a known-good baseline
